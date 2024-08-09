@@ -602,6 +602,10 @@ impl UdpHolePunchConnector {
     }
 
     pub async fn run(&mut self) -> Result<(), Error> {
+        if self.data.global_ctx.get_flags().disable_p2p {
+            return Ok(());
+        }
+
         self.run_as_client().await?;
         self.run_as_server().await?;
 
@@ -1007,7 +1011,6 @@ pub mod tests {
 
     use tokio::net::UdpSocket;
 
-    use crate::connector::udp_hole_punch::UdpHolePunchListener;
     use crate::rpc::{NatType, StunInfo};
     use crate::tunnel::common::tests::wait_for_condition;
 
@@ -1191,23 +1194,5 @@ pub mod tests {
             Duration::from_secs(30),
         )
         .await;
-    }
-
-    #[tokio::test]
-    async fn udp_listener() {
-        let p_a = create_mock_peer_manager().await;
-        wait_for_condition(
-            || async {
-                p_a.get_global_ctx()
-                    .get_stun_info_collector()
-                    .get_stun_info()
-                    .udp_nat_type
-                    != NatType::Unknown as i32
-            },
-            Duration::from_secs(20),
-        )
-        .await;
-        let l = UdpHolePunchListener::new(p_a.clone()).await.unwrap();
-        println!("{:#?}", l.mapped_addr);
     }
 }
